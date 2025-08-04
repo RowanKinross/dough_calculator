@@ -213,7 +213,16 @@ const getTuesdayMixPlan = (trayCount) => {
           {mixPlan.length > 0 ? (
             <div className='ul'>
               <p className='paddingGeneral'>total flour: <strong>{roundedKg}kg</strong></p>
-              <div className='redBlueContainer paddingGeneral'>mix breakdown: <strong className='paddingGeneral strong'> {mixPlan.join('kg  + ')}kg </strong> all<p className="text-blue">blue</p></div>
+              
+              <div className='mixBreakdown'>
+                <div className='redBlueContainer paddingGeneral'>
+                  <p>mix breakdown: <strong className='paddingGeneral strong'> {mixPlan.join('kg  + ')}kg </strong> </p>
+                </div>  
+                <div className='redBlueContainer paddingGeneral' >
+                  <p>- all caputo </p>
+                  <p className="text-blue">blue</p>
+                </div>
+              </div>
             </div>
           ) : (
             <p className="warning">
@@ -225,11 +234,16 @@ const getTuesdayMixPlan = (trayCount) => {
             <p>Make on Thursday: <strong>{thursdayBatch}</strong> trays<br /></p>
             <div className='ul'>
               <p className='paddingGeneral'> total flour: <strong> 30kg</strong></p>
-              <div className='redBlueContainer paddingGeneral'>
-                <p>mix breakdown: <strong className='paddingGeneral strong'> 30kg </strong> half </p>
-                <p className="text-red"> red</p>
-                <p>/ half</p>
-                <p className="text-blue">blue</p>
+              <div className='mixBreakdown'>
+                <div className='redBlueContainer paddingGeneral'>
+                  <p>mix breakdown: <strong className='paddingGeneral strong'> 30kg </strong> </p>
+                </div>  
+                <div className='redBlueContainer paddingGeneral' >
+                  <p> - half caputo </p>
+                  <p className="text-red"> red</p>
+                  <p>/ half</p>
+                  <p className="text-blue">blue</p>
+                </div>
               </div>
             </div>
         </div>

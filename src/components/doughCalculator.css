@@ -99,6 +99,9 @@
   justify-content: left;
   align-items: center;
 }
+.mixBreakdown {
+  display: flex;
+}
 .text-red {
   color: red;
   padding: 2px;
@@ -107,4 +110,10 @@
 .text-blue {
   color: blue;
   padding: 2px;
+}
+
+@media (max-width: 530px) {
+  .mixBreakdown {
+    flex-direction: column;
+  }
 }
