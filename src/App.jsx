@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
 import './App.css';
-import DoughCalculator from './src/components/doughCalculator';
+import DoughCalculator from './components/doughCalculator';
 
 
 function App() {
