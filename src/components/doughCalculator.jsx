@@ -1,7 +1,8 @@
-import React, { useState, useEffect} from 'react';
+import React, { useState, useEffect, useRef} from 'react';
 import './doughCalculator.css';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase/firebase';
+import { isEqual } from 'lodash'; // Import deep comparison util
 
 const DoughCalculator = () => {
   const [projections, setProjections] = useState({
@@ -14,7 +15,7 @@ const DoughCalculator = () => {
   });
 
   const [leftover, setLeftover] = useState(0);
-
+  const originalDataRef = useRef({ projections: {}, leftover: null });
   const [lastEdit, setLastEdit] = useState(null);
 
   // Calculations
@@ -37,6 +38,12 @@ const DoughCalculator = () => {
       if (data.projections) setProjections(data.projections);
       if (data.leftover !== undefined) setLeftover(data.leftover);
       if (data.updatedAt) setLastEdit(data.updatedAt.toDate());
+
+      // Save original data for comparison later
+      originalDataRef.current = {
+        projections: data.projections || {},
+        leftover: data.leftover ?? null,
+      };
     }
   };
 
@@ -45,17 +52,27 @@ const DoughCalculator = () => {
 
 useEffect(() => {
   const timeout = setTimeout(() => {
-    const saveToFirestore = async () => {
-      const docRef = doc(db, 'doughPlans', 'currentWeek');
-      await setDoc(docRef, {
-        projections,
-        leftover,
-        updatedAt: serverTimestamp(),
-      });
-      setLastEdit(new Date());
+    const currentData = {
+      projections,
+      leftover,
     };
-    saveToFirestore();
-  }, 500); // wait 500ms after last change
+
+    const original = originalDataRef.current;
+
+    if (!isEqual(currentData, original)) {
+      const saveToFirestore = async () => {
+        const docRef = doc(db, 'doughPlans', 'currentWeek');
+        await setDoc(docRef, {
+          ...currentData,
+          updatedAt: serverTimestamp(),
+        });
+        setLastEdit(new Date());
+        originalDataRef.current = currentData; // update the original data
+      };
+
+      saveToFirestore();
+    }
+  }, 500);
 
   return () => clearTimeout(timeout);
 }, [projections, leftover]);
