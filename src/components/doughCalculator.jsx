@@ -166,7 +166,7 @@ const getTuesdayMixPlan = (trayCount) => {
 
   return (
     <div className="calculator-container">
-      <h2 className="title">🥖 Dough Tray Calculator</h2>
+      <h2 className="title">🍕 Dough Tray Calculator</h2>
 
       {lastEdit && (
         <p className="last-edit">
