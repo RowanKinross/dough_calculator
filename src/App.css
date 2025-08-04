@@ -1,0 +1,31 @@
+/* App-wide styles */
+:root {
+  --pale: #fdfdfd;
+  --dark: #1a1a1a;
+  --grey: rgb(224, 224, 224);
+  --green: #006A4E;
+}
+
+.logo {
+  width: 100px;
+}
+
+.header {
+  display: flex;
+  justify-content: center;
+}
+
+.body {
+  padding: 10px;
+}
+
+
+.container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.button {
+  margin-top: 10px;
+}

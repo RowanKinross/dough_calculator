@@ -1,0 +1,244 @@
+import React, { useState, useEffect} from 'react';
+import './doughCalculator.css';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from './firebase/firebase';
+
+const DoughCalculator = () => {
+  const [projections, setProjections] = useState({
+    wed: 0,
+    thurs: 0,
+    fri: 0,
+    sat: 0,
+    sun: 0,
+    wed_fw: 0,
+  });
+
+  const [leftover, setLeftover] = useState(0);
+
+  const [lastEdit, setLastEdit] = useState(null);
+
+  // Calculations
+  const currentWeekKeys = ['wed', 'thurs', 'fri', 'sat', 'sun'];
+  const currentWeekTotal = currentWeekKeys.reduce((sum, key) => sum + (projections[key] || 0), 0);
+
+  const totalProjected = Object.values(projections).reduce((a, b) => a + b, 0);
+  const totalToMake = Math.max(totalProjected - leftover, 0);
+
+  const thursdayBatch = 17;
+  const tuesdayMakeAhead = Math.max(totalToMake - thursdayBatch, 0);
+
+  useEffect(() => {
+  const loadFromFirestore = async () => {
+    const docRef = doc(db, 'doughPlans', 'currentWeek');
+    const snap = await getDoc(docRef);
+
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data.projections) setProjections(data.projections);
+      if (data.leftover !== undefined) setLeftover(data.leftover);
+      if (data.updatedAt) setLastEdit(data.updatedAt.toDate());
+    }
+  };
+
+  loadFromFirestore();
+}, []);
+
+useEffect(() => {
+  const timeout = setTimeout(() => {
+    const saveToFirestore = async () => {
+      const docRef = doc(db, 'doughPlans', 'currentWeek');
+      await setDoc(docRef, {
+        projections,
+        leftover,
+        updatedAt: serverTimestamp(),
+      });
+      setLastEdit(new Date());
+    };
+    saveToFirestore();
+  }, 500); // wait 500ms after last change
+
+  return () => clearTimeout(timeout);
+}, [projections, leftover]);
+
+
+
+  
+
+  // Labels
+  const dayLabels = {
+    wed: 'Wednesday',
+    thurs: 'Thursday',
+    fri: 'Friday',
+    sat: 'Saturday',
+    sun: '(Sunday)',
+    wed_fw: 'Wednesday',
+  };
+  const orderedDays = ['wed', 'thurs', 'fri', 'sat', 'sun', 'wed_fw'];
+
+  // Handler
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setProjections((prev) => ({
+      ...prev,
+      [name]: Number(value),
+    }));
+  };
+
+
+
+
+const getTuesdayMixPlan = (trayCount) => {
+  const kgPerTray = 5 / 2.78;
+  const exactKg = trayCount * kgPerTray;
+
+  const mixBlocks = trayCount / 2.78;
+  const roundedKg = Math.round(mixBlocks) * 5; // closest multiple of 5
+
+  const mixSizes = [50, 45, 35, 30, 15];
+  const memo = {};
+
+  const helper = (remaining) => {
+    if (remaining === 0) return [[]];
+    if (remaining < 0) return [];
+    if (memo[remaining]) return memo[remaining];
+
+    let plans = [];
+
+    for (let size of mixSizes) {
+      const subplans = helper(remaining - size);
+      for (let plan of subplans) {
+        plans.push([size, ...plan]);
+      }
+    }
+
+    memo[remaining] = plans;
+    return plans;
+  };
+
+  const allPlans = helper(roundedKg);
+
+  if (allPlans.length === 0) {
+    return {
+      kgNeeded: Math.round(exactKg),
+      roundedKg,
+      mixPlan: [],
+    };
+  }
+
+  // Pick shortest plan
+  let bestPlan = allPlans.reduce((best, plan) =>
+    !best || plan.length < best.length ? plan : best,
+    null
+  );
+
+  return {
+    kgNeeded: Math.round(exactKg),
+    roundedKg,
+    mixPlan: bestPlan,
+  };
+};
+
+
+
+
+
+
+  
+  const { kgNeeded, roundedKg, mixPlan } = getTuesdayMixPlan(tuesdayMakeAhead);
+
+
+  return (
+    <div className="calculator-container">
+      <h2 className="title">🥖 Dough Tray Calculator</h2>
+
+      {lastEdit && (
+        <p className="last-edit">
+          Last edit: {lastEdit.toLocaleString('en-GB')}
+        </p>
+      )}
+
+      {/* Leftover input */}
+      <div className="input-row">
+        <label>Leftover from last week:</label>
+        <input
+          type="number"
+          min="0"
+          value={leftover || ''}
+          onChange={(e) => setLeftover(Number(e.target.value))}
+        />
+      </div>
+
+      <hr className="dotted-divider" />
+      <p><strong>Next Week:</strong></p>
+
+      {/* Dough projections */}
+      <div className="inputs-section">
+
+        {orderedDays.map((day) => (
+          <React.Fragment key={day}>
+            <div className="input-row">
+              <label>{dayLabels[day]}</label>
+              <input
+                type="number"
+                name={day}
+                min="0"
+                value={projections[day] || ''}
+                onChange={handleChange}
+              />
+            </div>
+
+            {day === 'sun' && (
+              <>
+                <div className="tray-subtotal">
+                  Week subtotal: <strong>{currentWeekTotal}</strong> trays
+                </div>
+                <hr className="dotted-divider" />
+                <p><strong>Following Week:</strong></p>
+              </>
+            )}
+          </React.Fragment>
+        ))}
+
+      </div>
+      <hr className="dotted-divider" />
+
+      {/* Final result */}
+      <div className="result">
+        <p>Total to make:</p>
+        <span>{totalToMake} trays</span>
+
+        <div className="sub-result">
+          <p>Make on Tuesday: <strong>{tuesdayMakeAhead}</strong> trays</p>
+
+          {mixPlan.length > 0 ? (
+            <div className='ul'>
+              <p className='paddingGeneral'>total flour: <strong>{roundedKg}kg</strong></p>
+              <div className='redBlueContainer paddingGeneral'>mix breakdown: <strong className='paddingGeneral strong'> {mixPlan.join('kg  + ')}kg </strong> all<p className="text-blue">blue</p></div>
+            </div>
+          ) : (
+            <p className="warning">
+              ⚠️ No valid mix plan for {kgNeeded}kg. Try adjusting trays slightly.
+            </p>
+          )}
+
+
+            <p>Make on Thursday: <strong>{thursdayBatch}</strong> trays<br /></p>
+            <div className='ul'>
+              <p className='paddingGeneral'> total flour: <strong> 30kg</strong></p>
+              <div className='redBlueContainer paddingGeneral'>
+                <p>mix breakdown: <strong className='paddingGeneral strong'> 30kg </strong> half </p>
+                <p className="text-red"> red</p>
+                <p>/ half</p>
+                <p className="text-blue">blue</p>
+              </div>
+            </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+export default DoughCalculator;
+
+
